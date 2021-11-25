@@ -20,6 +20,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * Tree node with togglable visibility.
@@ -46,7 +47,12 @@ public class TogglableTreeNode extends DefaultMutableTreeNode {
 
     @SuppressWarnings("unchecked")
     List<TogglableTreeNode> getAllChildren() {
-        return Collections.unmodifiableList(children);
+        Vector<TogglableTreeNode> tmpChildren  = new Vector<TogglableTreeNode>();
+        for(final TreeNode node : children) {
+            assert(node instanceof TogglableTreeNode);
+            tmpChildren.add((TogglableTreeNode)node);
+        }
+        return Collections.unmodifiableList(tmpChildren);
     }
 
     @Override
