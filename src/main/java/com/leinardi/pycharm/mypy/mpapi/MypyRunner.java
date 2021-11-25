@@ -302,6 +302,7 @@ public class MypyRunner {
         cmd.setWorkDirectory(project.getBasePath());
         final Process process;
         try {
+            LOG.info("Running command: " + cmd.getCommandLineString());
             process = cmd.createProcess();
             InputStream inputStream = process.getInputStream();
             //TODO check stderr for errors

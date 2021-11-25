@@ -20,8 +20,10 @@ import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.leinardi.pycharm.mypy.checker.Problem;
 import com.leinardi.pycharm.mypy.checker.ScanFiles;
@@ -36,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.leinardi.pycharm.mypy.MypyBundle.message;
 import static com.leinardi.pycharm.mypy.util.Async.asyncResultOf;
@@ -62,14 +65,41 @@ public class MypyInspection extends LocalInspectionTool {
     public ProblemDescriptor[] checkFile(@NotNull final PsiFile psiFile,
                                          @NotNull final InspectionManager manager,
                                          final boolean isOnTheFly) {
-        return asProblemDescriptors(asyncResultOf(() -> inspectFile(psiFile, manager), NO_PROBLEMS_FOUND),
+        boolean unsaved = documentIsModifiedAndUnsaved(psiFile);
+        long start = System.currentTimeMillis();
+        LOG.debug("checkFile " + psiFile.getVirtualFile().getPresentableUrl()  // XXX may be null
+                        + " isOnTheFly=" + isOnTheFly
+                        + " modified=" + psiFile.getModificationStamp()
+                        + " saved=" + !unsaved
+                        + " thread=" + Thread.currentThread().getName()
+        );
+
+        if(!unsaved) {
+            throw new RuntimeException("");
+        }
+
+        ProblemDescriptor[] results = asProblemDescriptors(asyncResultOf(() -> inspectFile(psiFile, manager),
+                        NO_PROBLEMS_FOUND),
                 manager);
+        LOG.debug("checkFile " + psiFile.getName() + " DONE in " + (System.currentTimeMillis()-start) +" ms");
+        return results;
+    }
+
+    // FIXME HACK copy-paste
+    private Optional<VirtualFile> virtualFileOf(final PsiFile file) {
+        return ofNullable(file.getVirtualFile());
+    }
+
+    // FIXME HACK copy-paste
+    private boolean documentIsModifiedAndUnsaved(final PsiFile file) {
+        final FileDocumentManager fileDocumentManager = FileDocumentManager.getInstance();
+        return virtualFileOf(file).filter(fileDocumentManager::isFileModified).map(fileDocumentManager::getDocument)
+                .map(fileDocumentManager::isDocumentUnsaved).orElse(false);
     }
 
     @Nullable
     public List<Problem> inspectFile(@NotNull final PsiFile psiFile,
                                      @NotNull final InspectionManager manager) {
-        LOG.debug("Inspection has been invoked.");
 
         final MypyPlugin plugin = plugin(manager.getProject());
 
