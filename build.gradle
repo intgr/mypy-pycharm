@@ -33,7 +33,6 @@ buildscript {
 
 plugins {
     id 'org.jetbrains.intellij' version '0.4.17'
-    id 'net.ltgt.errorprone' version '0.0.16'
     id 'idea'
     id 'java'
     id 'checkstyle'
@@ -81,6 +80,10 @@ intellij {
     }
 }
 
+runIde {
+    systemProperties.put("idea.log.debug.categories", "#com.leinardi.pycharm.mypy")
+}
+
 patchPluginXml {
     version project.property('version')
     sinceBuild project.property('sinceBuild')
@@ -110,7 +113,7 @@ dependencies {
     if (hasPyCharm) {
         compileOnly name: 'pycharm'
     }
-    errorprone 'com.google.errorprone:error_prone_core:2.3.1'
+    // errorprone 'com.google.errorprone:error_prone_core:2.3.1'
 }
 
 def getChangelogHtml() {
