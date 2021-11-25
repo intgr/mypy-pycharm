@@ -15,9 +15,9 @@
   -->
 
 <idea-plugin>
-    <id>com.leinardi.pycharm.mypy</id>
-    <name>Mypy</name>
-    <vendor url="https://github.com/leinardi/mypy-pycharm">Roberto Leinardi</vendor>
+    <id>com.leinardi.pycharm.mypy.experimental</id>
+    <name>Mypy (experimental)</name>
+    <vendor url="https://github.com/intgr/mypy-pycharm">Marti Raudsepp</vendor>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
