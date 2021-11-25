@@ -46,12 +46,13 @@
 
         <projectConfigurable instance="com.leinardi.pycharm.mypy.MypyConfigurable"/>
 
-        <localInspection implementationClass="com.leinardi.pycharm.mypy.MypyInspection"
-                         bundle="com.leinardi.pycharm.mypy.MypyBundle"
-                         key="inspection.display-name"
-                         groupKey="inspection.group"
-                         level="WARNING"
-                         enabledByDefault="true"/>
+<!--        <localInspection implementationClass="com.leinardi.pycharm.mypy.MypyInspection"-->
+<!--                         bundle="com.leinardi.pycharm.mypy.MypyBundle"-->
+<!--                         key="inspection.display-name"-->
+<!--                         groupKey="inspection.group"-->
+<!--                         level="WARNING"-->
+<!--                         enabledByDefault="true"/>-->
+        <externalAnnotator language="Python" implementationClass="com.leinardi.pycharm.mypy.MypyAnnotator"/>
 
         <checkinHandlerFactory id="CheckStyleIDEACheckInHandlerFactory"
                                implementation="com.leinardi.pycharm.mypy.handlers.ScanFilesBeforeCheckinHandlerFactory"/>

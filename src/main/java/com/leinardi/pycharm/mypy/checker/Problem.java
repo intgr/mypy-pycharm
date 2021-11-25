@@ -19,6 +19,7 @@ package com.leinardi.pycharm.mypy.checker;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.leinardi.pycharm.mypy.MypyBundle;
 import com.leinardi.pycharm.mypy.mpapi.SeverityLevel;
@@ -82,6 +83,8 @@ public class Problem {
     public boolean isSuppressErrors() {
         return suppressErrors;
     }
+
+    public TextRange getTextRange() { return target.getTextRange(); }
 
     private ProblemHighlightType problemHighlightType() {
         return ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
