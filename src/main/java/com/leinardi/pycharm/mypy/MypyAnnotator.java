@@ -17,9 +17,12 @@
 package com.leinardi.pycharm.mypy;
 
 import com.intellij.codeInspection.InspectionManager;
-import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.lang.annotation.AnnotationHolder;
+import com.intellij.lang.annotation.ExternalAnnotator;
+import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
@@ -41,15 +44,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.leinardi.pycharm.mypy.MypyBundle.message;
-import static com.leinardi.pycharm.mypy.util.Async.asyncResultOf;
 import static com.leinardi.pycharm.mypy.util.Notifications.showException;
 import static com.leinardi.pycharm.mypy.util.Notifications.showWarning;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 
-public class MypyInspection extends LocalInspectionTool {
+public class MypyAnnotator extends ExternalAnnotator<MypyAnnotator.State, MypyAnnotator.Results> {
 
-    private static final Logger LOG = Logger.getInstance(MypyInspection.class);
+    private static final Logger LOG = Logger.getInstance(MypyAnnotator.class);
     private static final List<Problem> NO_PROBLEMS_FOUND = Collections.emptyList();
     private static final String ERROR_MESSAGE_INVALID_SYNTAX = "invalid syntax";
 
@@ -61,36 +63,71 @@ public class MypyInspection extends LocalInspectionTool {
         return mypyPlugin;
     }
 
-    @Override
-    public ProblemDescriptor[] checkFile(@NotNull final PsiFile psiFile,
-                                         @NotNull final InspectionManager manager,
-                                         final boolean isOnTheFly) {
-        boolean unsaved = documentIsModifiedAndUnsaved(psiFile);
-        long start = System.currentTimeMillis();
-        LOG.debug("checkFile " + psiFile.getVirtualFile().getPresentableUrl()  // XXX may be null
-                        + " isOnTheFly=" + isOnTheFly
-                        + " modified=" + psiFile.getModificationStamp()
-                        + " saved=" + !unsaved
-                        + " thread=" + Thread.currentThread().getName()
-        );
-
-        if(!unsaved) {
-            throw new RuntimeException("");
+    public static class State {
+        PsiFile file;
+        Project project;
+        public State(PsiFile file, Project project) {
+            this.file = file;
+            this.project = project;
         }
-
-        ProblemDescriptor[] results = asProblemDescriptors(asyncResultOf(() -> inspectFile(psiFile, manager),
-                        NO_PROBLEMS_FOUND),
-                manager);
-        LOG.debug("checkFile " + psiFile.getName() + " DONE in " + (System.currentTimeMillis()-start) +" ms");
-        return results;
     }
 
-    // FIXME HACK copy-paste
+    public static class Results {
+        List<Problem> issues;
+        public Results(List<Problem> issues) {
+            this.issues = issues;
+        }
+    }
+
+    @Nullable
+    @Override
+    public State collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
+        boolean unsaved = documentIsModifiedAndUnsaved(file);
+        LOG.debug("collectInformation " + file.getVirtualFile().getPresentableUrl()  // XXX may be null
+                + " hasErrors=" + hasErrors
+                + " modified=" + file.getModificationStamp()
+                + " saved=" + !unsaved
+                + " thread=" + Thread.currentThread().getName()
+        );
+
+        return new State(file, editor.getProject());
+    }
+
+    @Nullable
+    @Override
+    public Results doAnnotate(State state) {
+        long start = System.currentTimeMillis();
+        List<Problem> issues;
+
+        try {
+            issues = inspectFile(state.file, state.project);
+        } catch (Exception err) {
+            LOG.debug("Mypy failed: " + state.file.getName() + " in " + (System.currentTimeMillis() - start) + " ms: " + err.toString());
+            throw err;
+        }
+        LOG.debug("Mypy completed: " + state.file.getName() + " in " + (System.currentTimeMillis() - start) + " ms");
+
+        return new Results(issues);
+    }
+
+    public void apply(@NotNull PsiFile file, Results annotationResult, @NotNull AnnotationHolder holder) {
+        if (annotationResult == null || !file.isValid())
+            return;
+
+        LOG.debug("Found " + annotationResult.issues.size() + " annotations for " + file.getName());
+
+        for (Problem problem : annotationResult.issues) {
+            HighlightSeverity severity = HighlightSeverity.ERROR;
+
+            LOG.debug("                " + problem.getLine() + ": " + problem.getMessage());
+            holder.createAnnotation(severity, problem.getTextRange(), "Mypy: " + problem.getMessage());
+        }
+    }
+
     private Optional<VirtualFile> virtualFileOf(final PsiFile file) {
         return ofNullable(file.getVirtualFile());
     }
 
-    // FIXME HACK copy-paste
     private boolean documentIsModifiedAndUnsaved(final PsiFile file) {
         final FileDocumentManager fileDocumentManager = FileDocumentManager.getInstance();
         return virtualFileOf(file).filter(fileDocumentManager::isFileModified).map(fileDocumentManager::getDocument)
@@ -99,9 +136,9 @@ public class MypyInspection extends LocalInspectionTool {
 
     @Nullable
     public List<Problem> inspectFile(@NotNull final PsiFile psiFile,
-                                     @NotNull final InspectionManager manager) {
+                                     @NotNull final Project project) {
 
-        final MypyPlugin plugin = plugin(manager.getProject());
+        final MypyPlugin plugin = plugin(project);
 
         if (!MypyRunner.checkMypyAvailable(plugin.getProject())) {
             LOG.debug("Scan failed: Mypy not available.");
@@ -132,7 +169,7 @@ public class MypyInspection extends LocalInspectionTool {
             return NO_PROBLEMS_FOUND;
 
         } catch (Throwable e) {
-            handlePluginException(e, psiFile, manager.getProject());
+            handlePluginException(e, psiFile, project);
             return NO_PROBLEMS_FOUND;
 
         } finally {
