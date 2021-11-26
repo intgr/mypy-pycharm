@@ -89,7 +89,6 @@ patchPluginXml {
     sinceBuild project.property('sinceBuild')
     untilBuild project.property('untilBuild')
     pluginDescription props.getProperty('plugin.Mypy-PyCharm.description')
-    changeNotes getChangelogHtml()
 }
 
 publishPlugin {
