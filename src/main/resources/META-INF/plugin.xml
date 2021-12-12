@@ -41,8 +41,7 @@
                     factoryClass="com.leinardi.pycharm.mypy.toolwindow.MypyToolWindowFactory"
                     icon="/com/leinardi/pycharm/mypy/images/mypy.png"/>
 
-        <projectService serviceInterface="com.leinardi.pycharm.mypy.MypyConfigService"
-                        serviceImplementation="com.leinardi.pycharm.mypy.MypyConfigService"/>
+        <projectService serviceImplementation="com.leinardi.pycharm.mypy.MypyConfigService"/>
 
         <projectConfigurable instance="com.leinardi.pycharm.mypy.MypyConfigurable"/>
 
