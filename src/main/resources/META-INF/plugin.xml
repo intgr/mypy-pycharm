@@ -26,14 +26,6 @@
     <!--suppress PluginXmlValidity -->
     <depends>com.intellij.modules.python</depends>
 
-
-    <project-components>
-        <component>
-            <implementation-class>com.leinardi.pycharm.mypy.MypyPlugin</implementation-class>
-            <interface-class>com.leinardi.pycharm.mypy.MypyPlugin</interface-class>
-        </component>
-    </project-components>
-
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Mypy"
                     anchor="bottom"
